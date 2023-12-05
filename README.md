@@ -51,7 +51,6 @@ url23
 url31 url24 url34
 ```
 
-
 ## Task
 - Read `collection.txt` and construct a graph (adjacency list or matrix).
 - Calculate Weighted PageRank for each page using the algorithm provided.
@@ -207,4 +206,11 @@ url25
 To run these tests, a bash script is provided, which will change into each directory test* and run the test. To use it, assuming the script runtests is in your current directory, do the following:
 ```bash
 ./runtests
+```
+
+# Compiling
+You may have to clean up all the binary files and recompile again
+```bash
+make clean
+make
 ```
