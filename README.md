@@ -45,9 +45,11 @@ Implement `pagerank.c` to calculate the PageRank for URLs listed in `collection.
 Contains URLs separated by whitespace. Each URL corresponds to a text file.
 
 Example:
+```
 url11 url21 url22
 url23
 url31 url24 url34
+```
 
 
 ## Task
@@ -100,10 +102,11 @@ In this algorithm:
 - PageRank values formatted to 7 decimal places (`%.7lf`)
 - Sorted in descending order of PageRank
 - Example:
-
+```
 url31, 3, 0.2623546
 url21, 1, 0.1843112
 ...
+```
 
 ## Note
 PageRank values may slightly vary but should align with expected values to the first 6 decimal places.
