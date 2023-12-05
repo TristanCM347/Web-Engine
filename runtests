@@ -1,0 +1,126 @@
+#!/bin/bash
+
+RED="$(tput setaf 1)"
+GREEN="$(tput setaf 2)"
+YELLOW="$(tput setaf 3)"
+BLUE="$(tput setaf 4)"
+RESET="$(tput sgr0)"
+
+make -q
+if [ $? -eq 1 ]; then
+    echo $RED"Warning: make hasn't recompiled your latest source files"$RESET
+fi
+
+test=$@
+if [ $# -eq 0 ]; then
+    test=$(find . -maxdepth 1 -type d -path './test*' | sed -e "s/\\.\\/test//g" | tr " " "\n" | sort -g | tr "\n" " ")
+fi
+
+passed=0
+failed=0
+total=0
+precision=6
+for testnum in $test; do
+    cd test$testnum
+    echo $BLUE"========== Running test $testnum =========="$RESET
+
+    if [ -f pagerank ] && [ -f pagerankList.exp ]; then
+        echo $BLUE"========== Test $testnum: ./pagerank 0.85 0.00001 1000 =========="$RESET
+        if [ ../pagerank -nt ./pagerank ]; then
+            echo $RED"Warning: pagerank executable out of date - you may wish to re-make, or \"make copy\""$RESET
+        fi
+        ./pagerank 0.85 0.00001 1000 >/dev/null
+        total=$((total+1))
+        if [ ! -f pagerankList.txt ]; then
+            echo $RED"No output file pagerankList.txt found - are you printing to stdout instead?"$RESET
+            failed=$((failed+1))
+        else
+            cat pagerankList.txt | awk '{$1=$1;print}' > pagerankList.txt~
+            mv pagerankList.txt~ pagerankList.txt
+            cat pagerankList.txt | sed -e "s/\([0-9]\{$precision\}\)[0-9]*$/\1/" > pagerankList.txt~
+            cat pagerankList.exp | sed -e "s/\([0-9]\{$precision\}\)[0-9]*$/\1/" > pagerankList.exp~
+            diff -bB pagerankList.txt~ pagerankList.exp~ &>/dev/null
+            if [ ${PIPESTATUS[0]} -eq 0 ]; then
+                echo $GREEN"Outputs match!"$RESET
+                passed=$((passed+1))
+            else
+                diff -bBy pagerankList.txt pagerankList.exp
+                echo $RED"Outputs don't match! See above for details"
+                echo "Your output on left; expected output on right"$RESET
+                failed=$((failed+1))
+            fi
+            rm pagerankList.txt~ pagerankList.exp~
+        fi
+    fi
+    if [ -f invertedIndex ] && [ -f invertedIndex.exp ]; then
+        echo $BLUE"========== Test $testnum: ./invertedIndex =========="$RESET
+        if [ ../invertedIndex -nt ./invertedIndex ]; then
+            echo $RED"Warning: invertedIndex executable out of date - you may wish to re-make, or \"make copy\""$RESET
+        fi
+        ./invertedIndex >/dev/null
+        total=$((total+1))
+        if [ ! -f invertedIndex.txt ]; then
+            echo $RED"No output file invertedIndex.txt found - are you printing to stdout instead?"$RESET
+            failed=$((failed+1))
+        else
+            cat invertedIndex.txt | awk '{$1=$1;print}' > invertedIndex.txt~
+            mv invertedIndex.txt~ invertedIndex.txt
+            diff -bB invertedIndex.txt invertedIndex.exp &>/dev/null
+            if [ ${PIPESTATUS[0]} -eq 0 ]; then
+                echo $GREEN"Outputs match!"$RESET
+                passed=$((passed+1))
+            else
+                diff -bBy invertedIndex.txt invertedIndex.exp
+                echo $RED"Outputs don't match! See above for details"
+                echo "Your output on left; expected output on right"$RESET
+                failed=$((failed+1))
+            fi
+        fi
+    fi
+    if [ -f searchPagerank ] && [ -f searchPagerank.exp ]; then
+        if [ ! -f searchTerms.txt ]; then
+            echo $BLUE"========== Test $testnum: ./searchPagerank (unknown) =========="$RESET
+            echo $YELLOW"No searchTerms.txt found - this is required to test part 3"$RESET
+            cd ..
+            continue
+        fi
+        read -r args <searchTerms.txt
+        echo $BLUE"========== Test $testnum: ./searchPagerank $args =========="$RESET
+        if [ ../searchPagerank -nt ./searchPagerank ]; then
+            echo $RED"Warning: searchPagerank executable out of date - you may wish to re-make, or \"make copy\""$RESET
+        fi
+        if [ -f collection.txt ]; then
+            mv collection.txt collection.txt~
+        fi
+        ./searchPagerank $args >searchPagerank.txt
+        total=$((total+1))
+        if [ ! $? -eq 0 ]; then
+            echo $RED"Your program terminated incorrectly - this may be memory leaks/errors, or attempting to open collection.txt"$RESET
+            failed=$((failed+1))
+        else 
+            diff -bB searchPagerank.txt searchPagerank.exp &>/dev/null
+            if [ ${PIPESTATUS[0]} -eq 0 ]; then
+                echo $GREEN"Outputs match!"$RESET
+                passed=$((passed+1))
+            else
+                diff -bBy searchPagerank.txt searchPagerank.exp
+                echo $RED"Outputs don't match! See above for details"
+                echo "Your output on left; expected output on right"$RESET
+                failed=$((failed+1))
+            fi
+        fi
+        if [ -f collection.txt~ ]; then
+            mv collection.txt~ collection.txt
+        fi
+    fi
+    
+    cd ..
+done
+
+echo ""
+echo $BLUE"Total  tests: $total"$RESET
+echo $BLUE"Passed tests: "$GREEN"$passed"$RESET
+echo $BLUE"Failed tests: "$RED"$failed"$RESET
+if [ $failed -eq 0 ]; then
+    echo $GREEN"Good job!"$RESET
+fi
